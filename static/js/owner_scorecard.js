@@ -5,7 +5,7 @@ document.getElementById("backBtn").addEventListener("click", () => {
 });
 
 document.getElementById("downloadBtn").addEventListener("click", () => {
-  window.location.href = `/api/owner/${encodeURIComponent(QUIZ_ID)}/scorecard/download`;
+  window.location.href = `/api/owner/${encodeURIComponent(QUIZ_ID)}/scorecard/download?t=${encodeURIComponent(DOWNLOAD_TOKEN)}`;
 });
 
 function escapeHtmlLocal(str) {
