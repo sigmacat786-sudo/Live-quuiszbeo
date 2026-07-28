@@ -1,0 +1,9 @@
+Flask
+Werkzeug
+pymongo
+pdfplumber
+pytesseract
+pdf2image
+Pillow
+gunicorn
+python-dotenv
