@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 from flask import Flask, request, render_template, jsonify, redirect, url_for, Response, session
 from werkzeug.utils import secure_filename
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from utils.db import get_db
 from utils.pdf_parser import extract_questions_from_pdf
@@ -18,7 +19,7 @@ from utils.pdf_parser import extract_questions_from_pdf
 # domain (wherever this admin/upload service itself is deployed, e.g.
 # smartyms-toxic-quiz-system.onrender.com) never leaks into shared links.
 # To change it later, edit ONLY this one line:
-PUBLIC_PLAY_BASE_URL = "https://smartyms-toxic-live-quiz-challlenge.onrender.com"
+PUBLIC_PLAY_BASE_URL = "https://smartyms-harsh-quiz-system.onrender.com"
 
 UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "/tmp/smartyms_uploads")
 MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_MB", "500")) * 1024 * 1024  # default 500MB safety cap
@@ -129,6 +130,46 @@ def _dense_rank_map(marks_list):
     """
     distinct_sorted = sorted(set(marks_list), reverse=True)
     return {m: i + 1 for i, m in enumerate(distinct_sorted)}
+
+
+# Signed, short-lived download tokens. Some mobile browsers hand file
+# downloads (Content-Disposition: attachment) off to a separate native
+# download manager that does NOT reliably resend the session cookie, which
+# made "Download list" fail with "Owner login required" even though the
+# owner was clearly logged in. These tokens let the two download routes
+# authenticate the request WITHOUT depending on that cookie.
+_download_serializer = URLSafeTimedSerializer(app.secret_key, salt="owner-download-link")
+
+
+def _make_download_token(quiz_id):
+    return _download_serializer.dumps({"quiz_id": quiz_id})
+
+
+def _verify_download_token(token, quiz_id):
+    if not token:
+        return False
+    try:
+        data = _download_serializer.loads(token, max_age=600)  # valid 10 minutes
+    except (BadSignature, SignatureExpired):
+        return False
+    return data.get("quiz_id") == quiz_id
+
+
+def owner_required_or_token(view):
+    """Same guard as owner_required, but also accepts a valid ?t= download
+    token in place of the session cookie. Use ONLY for file-download routes.
+    """
+    @functools.wraps(view)
+    def wrapped(*args, **kwargs):
+        quiz_id = kwargs.get("quiz_id")
+        token = request.args.get("t")
+        if (session.get("is_admin") or session.get(f"owner_{quiz_id}")
+                or _verify_download_token(token, quiz_id)):
+            return view(*args, **kwargs)
+        if request.path.startswith("/api/"):
+            return jsonify({"ok": False, "error": "Owner login required"}), 401
+        return redirect(url_for("play", v=quiz_id))
+    return wrapped
 
 
 def _sanitize_quiz_id(name: str) -> str:
@@ -740,7 +781,8 @@ def owner_scorecard_page(quiz_id):
     quiz = quizzes_col.find_one({"_id": quiz_id}, {"title": 1})
     if not quiz:
         return redirect(url_for("index"))
-    return render_template("owner_scorecard.html", quiz_id=quiz_id, title=quiz["title"])
+    download_token = _make_download_token(quiz_id)
+    return render_template("owner_scorecard.html", quiz_id=quiz_id, title=quiz["title"], download_token=download_token)
 
 
 # ─── API: live scorecard data (polled every ~2-3s by the frontend) ────────
@@ -766,7 +808,7 @@ def api_owner_scorecard(quiz_id):
 
 # ─── API: download scorecard as .txt ───────────────────────────────────────
 @app.route("/api/owner/<path:quiz_id>/scorecard/download")
-@owner_required
+@owner_required_or_token
 def api_owner_scorecard_download(quiz_id):
     quiz = quizzes_col.find_one({"_id": quiz_id}, {"title": 1})
     title = quiz["title"] if quiz else quiz_id
@@ -798,7 +840,8 @@ def owner_top5_page(quiz_id):
     quiz = quizzes_col.find_one({"_id": quiz_id}, {"title": 1})
     if not quiz:
         return redirect(url_for("index"))
-    return render_template("owner_top5.html", quiz_id=quiz_id, title=quiz["title"])
+    download_token = _make_download_token(quiz_id)
+    return render_template("owner_top5.html", quiz_id=quiz_id, title=quiz["title"], download_token=download_token)
 
 
 def _top5_rows(quiz_id):
@@ -824,7 +867,7 @@ def api_owner_top5(quiz_id):
 
 
 @app.route("/api/owner/<path:quiz_id>/top5/download")
-@owner_required
+@owner_required_or_token
 def api_owner_top5_download(quiz_id):
     quiz = quizzes_col.find_one({"_id": quiz_id}, {"title": 1})
     title = quiz["title"] if quiz else quiz_id
