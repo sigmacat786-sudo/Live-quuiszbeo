@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartyMS Quiz System — Upload PDF</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <!-- ── STRICT ADMIN LOGIN PORTAL (must pass before upload page shows) ─── -->
+  <div id="loginGate" class="modal">
+    <div class="modal-card gate-card">
+      <p class="login-title">STRICT LOGIN PORTAL</p>
+      <p class="login-subtitle">Made By: Smarty MS Bro</p>
+
+      <label class="gate-label" for="ownerNameInput">Name: Enter Website Owner Name;</label>
+      <input type="text" id="ownerNameInput" class="login-input" autocomplete="off" autocapitalize="off" spellcheck="false">
+
+      <label class="gate-label" for="adminKeyInput">Admin Key: Please Enter Owner/Admin Key Here;</label>
+      <input type="password" id="adminKeyInput" class="login-input" autocomplete="off" autocapitalize="off" spellcheck="false">
+
+      <label class="gate-label" for="vipKeyInput">VIP Key: Please Enter Your VIP Key</label>
+      <input type="password" id="vipKeyInput" class="login-input" autocomplete="off" autocapitalize="off" spellcheck="false">
+
+      <p id="loginError" class="gate-error hidden"></p>
+
+      <div class="gate-actions">
+        <button id="loginBtn" class="btn btn-primary">LOGIN</button>
+        <button id="getKeysBtn" class="btn btn-ghost">GET KEYS</button>
+      </div>
+
+      <p class="login-caption">Only for Education Purpose Simple Quiz Generate Web 💙!</p>
+    </div>
+  </div>
+
+  <!-- ── EXISTING UPLOAD PAGE (unchanged, just hidden until login passes) ─ -->
+  <div id="uploadWrapper" class="hidden">
+    <div class="page-center">
+      <div class="card upload-card">
+        <h1 class="brand">SmartyMS Quiz System</h1>
+        <p class="subtitle">PDF upload karo, quiz link seconds me generate karo.</p>
+
+        <form id="uploadForm">
+          <label class="dropzone" id="dropzone">
+            <input type="file" id="pdfInput" name="pdf_file" accept="application/pdf" hidden>
+            <span id="dropzoneText">📄 PDF file yahan choose karo (koi question limit nahi)</span>
+          </label>
+
+          <div id="namePreviewSection" class="name-row hidden">
+            <div class="name-info">
+              <span class="name-label">Original Name:</span>
+              <span id="displayFileName" class="name-value"></span>
+            </div>
+            <button type="button" id="copyFileNameBtn" class="icon-btn" title="Copy">📋</button>
+            <button type="button" id="editFileNameBtn" class="icon-btn" title="Edit">✏️</button>
+          </div>
+
+          <button type="submit" id="generateBtn" class="btn btn-primary" disabled>
+            NEXT ⚡
+          </button>
+        </form>
+
+        <div id="statusBox" class="status-box hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Edit filename: confirmation step ─────────────────────────────── -->
+  <div id="editConfirmModal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Are you Sure to Edit File Name🙈?</h2>
+      <div class="modal-actions">
+        <button id="editConfirmYes" class="btn btn-primary">Yes</button>
+        <button id="editConfirmNo" class="btn btn-ghost">No</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Edit filename: actual edit form ─────────────────────────────── -->
+  <div id="editNameModal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Edit File Name</h2>
+
+      <div class="info-row">
+        <div class="info-text">
+          <span class="info-label">Original Name</span>
+          <span id="editOriginalNameText" class="info-value"></span>
+        </div>
+      </div>
+
+      <label class="gate-label" for="editedNameInput">Edited Name:</label>
+      <input type="text" id="editedNameInput" class="login-input" maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <p id="editNameError" class="gate-error hidden"></p>
+
+      <div class="modal-actions">
+        <button id="saveEditedNameBtn" class="btn btn-blue btn-sm">Save ✅</button>
+        <button id="cancelEditedNameBtn" class="btn btn-ghost btn-sm">Cancel ❌</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="{{ url_for('static', filename='js/admin-deter.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
